@@ -5,8 +5,12 @@ import type {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import { eq, and, or } from "drizzle-orm";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 const MemoryStore = createMemoryStore(session);
+const PgStore = connectPgSimple(session);
 
 // Interface for storage operations
 export interface IStorage {
@@ -423,4 +427,202 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Database storage implementation for Heroku PostgreSQL
+export class DatabaseStorage implements IStorage {
+  private db: PostgresJsDatabase;
+  sessionStore: any; // Using any to avoid TypeScript errors with session.SessionStore
+
+  constructor(db: PostgresJsDatabase) {
+    this.db = db;
+    
+    // Initialize PostgreSQL session store
+    this.sessionStore = new PgStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      },
+      createTableIfMissing: true
+    });
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users)
+      .where(eq(users.username, username));
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users)
+      .where(eq(users.email, email));
+    return result[0];
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const result = await this.db.insert(users).values(user).returning();
+    return result[0];
+  }
+
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const result = await this.db.update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Resource operations
+  async getResources(): Promise<Resource[]> {
+    return await this.db.select().from(resources);
+  }
+
+  async getResourcesByDiscipline(discipline: string): Promise<Resource[]> {
+    return await this.db.select().from(resources)
+      .where(eq(resources.discipline, discipline));
+  }
+
+  async getResourcesBySkillLevel(skillLevel: string): Promise<Resource[]> {
+    return await this.db.select().from(resources)
+      .where(eq(resources.skillLevel, skillLevel));
+  }
+
+  async getResourceById(id: number): Promise<Resource | undefined> {
+    const result = await this.db.select().from(resources)
+      .where(eq(resources.id, id));
+    return result[0];
+  }
+
+  async createResource(resource: Omit<Resource, "id" | "createdAt">): Promise<Resource> {
+    const result = await this.db.insert(resources).values({
+      ...resource,
+      createdAt: new Date()
+    }).returning();
+    return result[0];
+  }
+
+  // Discussion bowl operations
+  async getDiscussionBowls(): Promise<DiscussionBowl[]> {
+    return await this.db.select().from(discussionBowls);
+  }
+
+  async getDiscussionBowlById(id: number): Promise<DiscussionBowl | undefined> {
+    const result = await this.db.select().from(discussionBowls)
+      .where(eq(discussionBowls.id, id));
+    return result[0];
+  }
+
+  async createDiscussionBowl(bowl: Omit<DiscussionBowl, "id" | "createdAt" | "memberCount" | "postCount">): Promise<DiscussionBowl> {
+    const result = await this.db.insert(discussionBowls).values({
+      ...bowl,
+      memberCount: 0,
+      postCount: 0,
+      createdAt: new Date()
+    }).returning();
+    return result[0];
+  }
+
+  // Discussion topic operations
+  async getTopicsByBowlId(bowlId: number): Promise<DiscussionTopic[]> {
+    return await this.db.select().from(discussionTopics)
+      .where(eq(discussionTopics.bowlId, bowlId));
+  }
+
+  async createDiscussionTopic(topic: Omit<DiscussionTopic, "id" | "createdAt" | "replyCount">): Promise<DiscussionTopic> {
+    const result = await this.db.insert(discussionTopics).values({
+      ...topic,
+      replyCount: 0,
+      createdAt: new Date()
+    }).returning();
+    return result[0];
+  }
+
+  // Job listing operations
+  async getJobListings(): Promise<JobListing[]> {
+    return await this.db.select().from(jobListings);
+  }
+
+  async getJobListingById(id: number): Promise<JobListing | undefined> {
+    const result = await this.db.select().from(jobListings)
+      .where(eq(jobListings.id, id));
+    return result[0];
+  }
+
+  async getJobListingsByDiscipline(discipline: string): Promise<JobListing[]> {
+    return await this.db.select().from(jobListings)
+      .where(eq(jobListings.discipline, discipline));
+  }
+
+  async createJobListing(job: Omit<JobListing, "id" | "createdAt">): Promise<JobListing> {
+    const result = await this.db.insert(jobListings).values({
+      ...job,
+      createdAt: new Date()
+    }).returning();
+    return result[0];
+  }
+
+  // Mentor operations
+  async getMentors(): Promise<Mentor[]> {
+    return await this.db.select().from(mentors);
+  }
+
+  async getMentorById(id: number): Promise<Mentor | undefined> {
+    const result = await this.db.select().from(mentors)
+      .where(eq(mentors.id, id));
+    return result[0];
+  }
+
+  async getMentorsByExpertise(expertise: string): Promise<Mentor[]> {
+    // This is a simplified implementation; in a real-world scenario,
+    // you would need a more sophisticated query for arrays
+    const allMentors = await this.db.select().from(mentors);
+    return allMentors.filter(mentor => 
+      mentor.expertise && mentor.expertise.includes(expertise)
+    );
+  }
+
+  async createMentor(mentor: Omit<Mentor, "id">): Promise<Mentor> {
+    const result = await this.db.insert(mentors).values(mentor).returning();
+    return result[0];
+  }
+
+  // Message operations
+  async getMessagesBetweenUsers(userId1: number, userId2: number): Promise<Message[]> {
+    return await this.db.select().from(messages).where(
+      or(
+        and(
+          eq(messages.senderId, userId1),
+          eq(messages.recipientId, userId2)
+        ),
+        and(
+          eq(messages.senderId, userId2),
+          eq(messages.recipientId, userId1)
+        )
+      )
+    ).orderBy(messages.createdAt);
+  }
+
+  async createMessage(message: Omit<Message, "id" | "createdAt">): Promise<Message> {
+    const result = await this.db.insert(messages).values({
+      ...message,
+      createdAt: new Date()
+    }).returning();
+    return result[0];
+  }
+
+  async markMessageAsRead(id: number): Promise<Message | undefined> {
+    const result = await this.db.update(messages)
+      .set({ isRead: true })
+      .where(eq(messages.id, id))
+      .returning();
+    return result[0];
+  }
+}
+
+// Choose storage implementation based on environment
+// For the time being, use MemStorage as default since we're deploying the initial version
 export const storage = new MemStorage();
