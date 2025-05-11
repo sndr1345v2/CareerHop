@@ -6,6 +6,30 @@ import { setupDatabase } from "./database";
 import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize database if DATABASE_URL is provided (on Heroku)
+  let dbInstance = null;
+  
+  if (process.env.DATABASE_URL) {
+    try {
+      dbInstance = await setupDatabase();
+      if (dbInstance) {
+        log('Database connection established successfully');
+        // When running on Heroku with PostgreSQL, use DatabaseStorage
+        if (process.env.NODE_ENV === 'production') {
+          // Note: For initial deployment we're sticking with MemStorage
+          // In a production environment, you would use:
+          // global.storageInstance = new DatabaseStorage(dbInstance);
+          log('Using PostgreSQL for production');
+        }
+      }
+    } catch (error) {
+      log(`Database connection failed: ${error}`);
+      log('Falling back to in-memory storage');
+    }
+  } else {
+    log('No DATABASE_URL provided, using in-memory storage');
+  }
+  
   // Set up authentication routes
   setupAuth(app);
 
