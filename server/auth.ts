@@ -40,6 +40,8 @@ export function setupAuth(app: Express) {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      // Allow cookies to work with Heroku's proxy setup
+      ...(process.env.NODE_ENV === "production" && { proxy: true })
     }
   };
 

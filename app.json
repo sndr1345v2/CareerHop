@@ -1,0 +1,31 @@
+{
+  "name": "CareerHop",
+  "description": "A semi-anonymous social network for engineering students with AI-powered job and mentor recommendations",
+  "repository": "https://github.com/sndr1345v2/CareerHop.git",
+  "logo": "https://careerhop.herokuapp.com/logo.png",
+  "keywords": ["node", "express", "react", "social network", "engineering", "education"],
+  "env": {
+    "NODE_ENV": {
+      "description": "Environment for the application",
+      "value": "production"
+    },
+    "SESSION_SECRET": {
+      "description": "A secret key for encrypting sessions",
+      "generator": "secret"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:hobby-dev",
+      "as": "DATABASE"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "scripts": {
+    "postdeploy": "npm run build"
+  }
+}
