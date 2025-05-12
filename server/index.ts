@@ -56,9 +56,13 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Use the PORT environment variable (set by Heroku) or default to 5000
-  // this serves both the API and the client.
-  const port = process.env.PORT || 5000;
+  // Use the PORT environment variable (set by cloud providers)
+  // Google Cloud Run defaults to PORT 8080
+  // Replit requires PORT 5000
+  // This serves both the API and the client.
+  const defaultPort = process.env.REPL_ID ? 5000 : 8080; // Use 5000 for Replit, 8080 for Google Cloud
+  const port = process.env.PORT || defaultPort;
+  
   server.listen({
     port: Number(port),
     host: "0.0.0.0",

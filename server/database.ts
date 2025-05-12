@@ -6,14 +6,31 @@ import { log } from './vite';
 // Default to in-memory for development if DATABASE_URL is not provided
 let dbUrl = process.env.DATABASE_URL;
 
-// Parse Heroku's DATABASE_URL if provided
+// Handle cloud provider database connection
 if (dbUrl && process.env.NODE_ENV === 'production') {
-  // Heroku PostgreSQL requires SSL
-  if (!dbUrl.includes('?sslmode=')) {
-    dbUrl += '?sslmode=require';
-  }
+  // Prepare connection string based on the environment
+  const isGoogleCloud = process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT;
   
-  log('Using Heroku PostgreSQL database');
+  if (isGoogleCloud) {
+    // Google Cloud SQL often uses socket connections
+    if (process.env.INSTANCE_CONNECTION_NAME) {
+      // If using Cloud SQL socket path
+      const dbSocketPath = process.env.DB_SOCKET_PATH || '/cloudsql';
+      dbUrl = `${dbUrl}?host=${dbSocketPath}/${process.env.INSTANCE_CONNECTION_NAME}`;
+    } else {
+      // Using standard TCP connection to Cloud SQL
+      if (!dbUrl.includes('?sslmode=')) {
+        dbUrl += '?sslmode=require';
+      }
+    }
+    log('Using Google Cloud SQL database');
+  } else {
+    // For other cloud providers that use simple connection strings
+    if (!dbUrl.includes('?sslmode=')) {
+      dbUrl += '?sslmode=require';
+    }
+    log('Using cloud PostgreSQL database');
+  }
 } else {
   log('Using in-memory storage (no DATABASE_URL provided)');
 }

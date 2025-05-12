@@ -6,7 +6,12 @@ import { setupDatabase } from "./database";
 import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize database if DATABASE_URL is provided (on Heroku)
+  // Add health check endpoint for Google Cloud readiness checks
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
+  // Initialize database if DATABASE_URL is provided
   let dbInstance = null;
   
   if (process.env.DATABASE_URL) {
@@ -14,7 +19,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       dbInstance = await setupDatabase();
       if (dbInstance) {
         log('Database connection established successfully');
-        // When running on Heroku with PostgreSQL, use DatabaseStorage
+        // When running in production with PostgreSQL, use DatabaseStorage
         if (process.env.NODE_ENV === 'production') {
           // Note: For initial deployment we're sticking with MemStorage
           // In a production environment, you would use:
