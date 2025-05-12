@@ -189,4 +189,4 @@ The application requires the following environment variables:
 - Frontend: React, Tailwind CSS, shadcn/ui
 - Backend: Express.js, Passport.js
 - Database: PostgreSQL with Drizzle ORM
-- Hosting: Google Cloud Platform
+- Hosting: Google Cloud Platform# CareerHop
