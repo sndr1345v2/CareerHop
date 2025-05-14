@@ -3,8 +3,8 @@ FROM node:20-slim
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY client/ ./client/
-RUN npm ci
+COPY package*.json ./
+RUN npm ci --production
 
 # Copy application code
 COPY . .
