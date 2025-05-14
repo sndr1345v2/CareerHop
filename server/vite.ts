@@ -8,6 +8,30 @@ import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
 
+
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+
+export default defineConfig({
+  root: ".", // 👈 explicitly tell Vite where index.html is
+  plugins: [react()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+  },
+});
+
+
+
+
+
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -67,19 +91,14 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
+
+
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const staticPath = path.resolve(__dirname, "../client/dist"); // or dist/public if that's where Vite outputs
+  app.use(express.static(staticPath));
 
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
-  }
-
-  app.use(express.static(distPath));
-
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(staticPath, "index.html"));
   });
 }
+
