@@ -39,7 +39,7 @@ export default function AuthPage() {
                 <path d="M5 5V11M12 5V11M19 5V11M5 13V19M12 13V19M19 13V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Welcome to CareerHop</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Welcome to CareerHop EDIT HERE</h1>
             <p className="mt-2 text-gray-600">The engineering career community platform</p>
           </div>
           
