@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import http from "http";
 
 const app = express();
 app.use(express.json());
@@ -37,7 +38,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -47,27 +48,26 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
+    const server = http.createServer(app);
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // Use the PORT environment variable (set by cloud providers)
-  // Google Cloud Run defaults to PORT 8080
-  // Replit requires PORT 5000
-  // This serves both the API and the client.
-  const defaultPort = process.env.REPL_ID ? 5000 : 8080; // Use 5000 for Replit, 8080 for Google Cloud
-  const port = process.env.PORT || defaultPort;
-  
-  server.listen({
-    port: Number(port),
-    host: "0.0.0.0",
+  const defaultPort = process.env.REPL_ID ? 5000 : 8080;
+  const port = Number(process.env.PORT || 8080);
+
+  const server = http.createServer(app);
+
+ server.listen(
+  {
+    port,
+    host: "0.0.0.0", // 👈 Must be 0.0.0.0 for Cloud Run
     reusePort: true,
-  }, () => {
+  },
+  () => {
     log(`serving on port ${port}`);
-  });
+  }
+);
 })();

@@ -69,7 +69,8 @@ export async function setupVite(app: Express, server: Server) {
 export function serveStatic(app: Express) {
   const staticPath = path.resolve(__dirname, "../client/dist");
   app.use(express.static(staticPath));
-  app.get("*", (_req, res) => {
+
+  app.get("*", (req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });
 }
