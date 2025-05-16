@@ -7,7 +7,13 @@ COPY package*.json ./
 RUN npm ci
 
 # ---------------- Build frontend ----------------
-COPY client ./client
+# Copy frontend files explicitly so index.html and config are guaranteed
+COPY client/index.html ./client/index.html
+COPY client/vite.config.ts ./client/vite.config.ts
+COPY client/public ./client/public
+COPY client/src ./client/src
+COPY client/package*.json ./client/
+
 WORKDIR /app/client
 RUN npm ci
 RUN npm run build  # ← Vite builds to /app/client/dist
